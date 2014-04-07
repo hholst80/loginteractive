@@ -1,0 +1,5 @@
+x=3.14
+print 'x:', x
+from math import sin
+y=sin(x)
+print 'sin(x):', y
