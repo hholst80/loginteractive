@@ -21,7 +21,8 @@ static ssize_t (*real_read)(int,void*,size_t) = NULL;
 static int (*real_select)(int nfds, fd_set *restrict readfds, fd_set *restrict writefds, fd_set *restrict errorfds, struct timeval *restrict timeout) = NULL;
 static ssize_t (*real_write)(int,const void*,size_t) = NULL;
 
-static int stdindata = 0;
+static int g_stdindata = 0;
+static int g_follow = 0;
 
 static void init(void)
 {
@@ -35,18 +36,20 @@ static void init(void)
 	if (!real_write)
 		fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
 	if (getenv("STDIN"))
-		stdindata = open(getenv("STDIN"),O_RDONLY);
+		g_stdindata = open(getenv("STDIN"),O_RDONLY);
 	else
-		stdindata = open("stdin.txt",O_RDONLY);
-	if (stdindata < 0)
+		g_stdindata = open("stdin.txt",O_RDONLY);
+	if (g_stdindata < 0)
 		perror("open");
+	if (getenv("FOLLOW"))
+		g_follow = atoi(getenv("FOLLOW"));
 }
 
 int select(int nfds, fd_set *restrict readfds, fd_set *restrict writefds, fd_set *restrict errorfds, struct timeval *restrict timeout)
 {
 	if (!real_select)
 		init();
-	if (stdindata < 0)
+	if (g_stdindata < 0)
 		return real_select(nfds,readfds,writefds,errorfds,timeout);
 	FD_SET(0,readfds);
 	return 1;
@@ -56,15 +59,20 @@ ssize_t read(int filedes, void *buffer, size_t size)
 {
 	if (!real_read)
 		init();
-	if (stdindata < 0 || filedes != 0)
+	if (g_stdindata < 0 || filedes != 0)
 		return real_read(filedes,buffer,size);
 	ssize_t count = 0;
 	while (count < size) {
-		ssize_t rc = real_read(stdindata,buffer+count,1);
+		ssize_t rc = real_read(g_stdindata,buffer+count,1);
 		if (rc == 0) {
-			close(stdindata);
-			stdindata = -1;
-			break;
+			if (!g_follow) {
+				close(g_stdindata);
+				g_stdindata = -1;
+				break;
+			} else {
+				sleep(1);
+				continue;
+			}
 		}
 		if (((char*)buffer)[count++] == '\n')
 			break;
