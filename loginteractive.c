@@ -24,7 +24,7 @@ static ssize_t (*real_write)(int,const void*,size_t) = NULL;
 static int g_stdindata = 0;
 static int g_follow = 0;
 
-static void init(void)
+void __attribute__((constructor)) init(void)
 {
 	real_read = dlsym(RTLD_NEXT, "read");
 	if (!real_read)
@@ -47,8 +47,6 @@ static void init(void)
 
 int select(int nfds, fd_set *restrict readfds, fd_set *restrict writefds, fd_set *restrict errorfds, struct timeval *restrict timeout)
 {
-	if (!real_select)
-		init();
 	if (g_stdindata < 0)
 		return real_select(nfds,readfds,writefds,errorfds,timeout);
 	FD_SET(0,readfds);
@@ -57,8 +55,6 @@ int select(int nfds, fd_set *restrict readfds, fd_set *restrict writefds, fd_set
 
 ssize_t read(int filedes, void *buffer, size_t size)
 {
-	if (!real_read)
-		init();
 	if (g_stdindata < 0 || filedes != 0)
 		return real_read(filedes,buffer,size);
 	ssize_t count = 0;
