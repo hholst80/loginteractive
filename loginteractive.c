@@ -53,13 +53,13 @@ int select(int nfds, fd_set *restrict readfds, fd_set *restrict writefds, fd_set
 	return 1;
 }
 
-ssize_t read(int filedes, void *buffer, size_t size)
+ssize_t read(int fd, void *buf, size_t nbytes)
 {
-	if (g_stdindata < 0 || filedes != 0)
-		return real_read(filedes,buffer,size);
+	if (g_stdindata < 0 || fd != 0)
+		return real_read(fd,buf,nbytes);
 	ssize_t count = 0;
-	while (count < size) {
-		ssize_t rc = real_read(g_stdindata,buffer+count,1);
+	while (count < nbytes) {
+		ssize_t rc = real_read(g_stdindata,buf+count,1);
 		if (rc == 0) {
 			if (!g_follow) {
 				close(g_stdindata);
@@ -70,8 +70,15 @@ ssize_t read(int filedes, void *buffer, size_t size)
 				continue;
 			}
 		}
-		if (((char*)buffer)[count++] == '\n')
+		if (((char*)buf)[count++] == '\n')
 			break;
 	}
 	return count;
 }
+
+#if 0
+ssize_t write(int fd, const void *buf, size_t n) 
+{ 
+	return real_write(fd,buf,n);
+} 
+#endif
