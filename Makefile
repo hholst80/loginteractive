@@ -2,7 +2,7 @@
 
 all: loginteractive.so
 
-clean: libinteractive.so
+clean: loginteractive.so
 	rm -f $^
 
 loginteractive.so: loginteractive.c
