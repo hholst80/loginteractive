@@ -2,8 +2,8 @@
 
 all: loginteractive.so
 
-clean: loginteractive.so
-	rm -f $^
+clean:
+	rm -f loginteractive.so
 
 loginteractive.so: loginteractive.c
 	gcc -o $@ -shared $^ -std=c99
