@@ -6,4 +6,4 @@ clean:
 	rm -f loginteractive.so
 
 loginteractive.so: loginteractive.c
-	gcc -o $@ -shared $^ -std=c99
+	gcc -o $@ -shared $^ -std=c99 -ldl
