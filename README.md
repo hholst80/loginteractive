@@ -1,22 +1,29 @@
 loginteractive
 ==============
 
-LD_PRELOAD logging facility for interactive programs
+This is a small C hack using `LD_PRELOAD` to be able to log interactive
+programs as if they where executed from a terminal.
 
 Usage
 =====
 
 You can use `loginteractive` as follows:
 
-	env STDIN=stdin-octave.txt \
-            LD_PRELOAD=./loginteractive.so \
-            octave -qi
+    env STDIN=stdin-octave.txt         \
+        STDOUT=stdout-octave.txt       \
+        LD_PRELOAD=./loginteractive.so \
+        octave -qi
 
-or if you wish to save stdout:
+The `STDIN` and `STDOUT` arguments are optional. The default values are
 
-	script -qc '...' | tee stdout.txt
+    STDIN=stdin.txt STDOUT=stdout.txt
 
-Unfortunally, I have not had the time to fix the script dependency.
-If you know why the following causes a deadlock, please send [me] a mail.
+Disclaimer
+==========
+
+I have not tested it with anything else than [GNU Octave] and [Python].
+Please send bug reports to [Me].
 
 [Me]: mailto:holst@matmech.com
+[GNU Octave]: https://www.gnu.org/software/octave/
+[Python]: https://www.python.org/
