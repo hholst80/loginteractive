@@ -21,7 +21,6 @@
 
 static ssize_t (*real_read)(int,void*,size_t) = NULL;
 static int (*real_select)(int nfds, fd_set *restrict readfds, fd_set *restrict writefds, fd_set *restrict errorfds, struct timeval *restrict timeout) = NULL;
-static ssize_t (*real_write)(int,const void*,size_t) = NULL;
 static ssize_t (*real_fwrite)(const void *ptr, size_t size, size_t count, FILE *stream) = NULL;
 static ssize_t (*real_fputs)(const void *str, FILE *stream) = NULL;
 
@@ -37,9 +36,6 @@ void __attribute__((constructor)) init(void)
 	real_select = dlsym(RTLD_NEXT, "select");
 	if (!real_select)
 		fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
-	real_write = dlsym(RTLD_NEXT, "write");
-	if (!real_write)
-		fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
 	real_fputs = dlsym(RTLD_NEXT, "fputs");
 	if (!real_fputs)
 		fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
@@ -48,8 +44,6 @@ void __attribute__((constructor)) init(void)
 		fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
 	if (getenv("STDIN"))
 		g_stdindata = open(getenv("STDIN"),O_RDONLY);
-	else
-		g_stdindata = open("stdin.txt",O_RDONLY);
 	if (g_stdindata < 0)
 		perror("open");
 	if (getenv("STDOUT"))
@@ -65,6 +59,8 @@ void __attribute__((constructor)) init(void)
 void __attribute__((destructor)) shutdown(void)
 {
 }
+
+/* TODO: I have not bothered to check how this should be done really. But this seems to work with Python. */
 
 int select(int nfds, fd_set *restrict readfds, fd_set *restrict writefds, fd_set *restrict errorfds, struct timeval *restrict timeout)
 {
@@ -109,7 +105,8 @@ int fputs(const char * str, FILE * stream)
 		return 0;
 	if (stream != stdout)
 		return real_fputs(str,stream);
-	real_fputs(str,g_stdoutdata);
+	if (g_stdoutdata != stdout)
+		real_fputs(str,g_stdoutdata);
 	return real_fputs(str,stream);
 }
 
@@ -119,13 +116,7 @@ size_t fwrite(const void *ptr, size_t size, size_t count, FILE *stream)
 		return 0;
 	if (stream != stdout)
 		return real_fwrite(ptr,size,count,stream);
-	real_fwrite(ptr,size,count,g_stdoutdata);
+	if (g_stdoutdata != stdout)
+		real_fwrite(ptr,size,count,g_stdoutdata);
 	return real_fwrite(ptr,size,count,stream);
-}
-
-ssize_t write(int fd, const void *buf, size_t n) 
-{
-	if (!real_write)
-		return 0;
-	return real_write(fd,buf,n);
 }

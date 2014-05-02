@@ -1,10 +1,10 @@
 loginteractive
 ==============
 
-This is a small C hack using `LD_PRELOAD` to be able to log interactive
-programs as if they where executed from a terminal.
+`loginteractive` is a small C hack using `LD_PRELOAD` to be able to log
+interactive programs as if they where executed from a terminal.
 
-Usage
+usage
 =====
 
 You can use `loginteractive` as follows:
@@ -16,14 +16,20 @@ You can use `loginteractive` as follows:
 
 The `STDIN` and `STDOUT` arguments are optional. The default values are
 
-    STDIN=stdin.txt STDOUT=stdout.txt
+    STDIN=/dev/stdin STDOUT=stdout.txt
 
-Disclaimer
+known bugs
 ==========
 
 I have not tested it with anything else than [GNU Octave] and [Python].
-Please send bug reports to [Me].
+Please send bug reports to [Henrik Holst].
 
-[Me]: mailto:holst@matmech.com
+Line feeds are not propagated as they should when `STDIN=/dev/stdin`, but they
+work for `STDIN=stdin.txt`.
+
+The libc `select` subroutine seems to work for Python but will probably break
+somewhere down the line when this is more tested.
+
+[Henrik Holst]: mailto:holst@matmech.com
 [GNU Octave]: https://www.gnu.org/software/octave/
 [Python]: https://www.python.org/
