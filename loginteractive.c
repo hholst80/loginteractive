@@ -4,6 +4,8 @@
  * @license LICENSE
  */
 
+#include <string.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -25,7 +27,7 @@ static ssize_t (*real_fwrite)(const void *ptr, size_t size, size_t count, FILE *
 static ssize_t (*real_fputs)(const void *str, FILE *stream) = NULL;
 
 static int g_stdindata = 0;
-static FILE *g_stdoutdata = 0;
+static FILE * g_stdoutstream = 0;
 static int g_follow = 0;
 
 void __attribute__((constructor)) init(void)
@@ -47,13 +49,15 @@ void __attribute__((constructor)) init(void)
 	if (g_stdindata < 0)
 		perror("open");
 	if (getenv("STDOUT"))
-		g_stdoutdata = fopen(getenv("STDOUT"),"wb");
+		g_stdoutstream = fopen(getenv("STDOUT"),"wb");
 	else
-		g_stdoutdata = fopen("stdout.txt","wb");
-	if (!g_stdoutdata)
+		g_stdoutstream = fopen("stdout.txt","wb");
+	if (!g_stdoutstream)
 		perror("fopen");
-	if (getenv("FOLLOW"))
+	if (getenv("FOLLOW") && atoi(getenv("FOLLOW")) >= 0)
 		g_follow = atoi(getenv("FOLLOW"));
+	//if (getenv("NOBUF") && atoi(getenv("NOBUF")) > 0)
+	//	setbuf(g_stdoutstream,NULL);
 }
 
 void __attribute__((destructor)) shutdown(void)
@@ -74,12 +78,14 @@ int select(int nfds, fd_set *restrict readfds, fd_set *restrict writefds, fd_set
 
 ssize_t read(int fd, void *buf, size_t nbytes)
 {
+	char * cbuf = buf;
+	ssize_t count = 0;
+	int got_eol = 0;
 	if (!real_read)
 		return 0;
 	if (g_stdindata < 0 || fd != 0)
 		return real_read(fd,buf,nbytes);
-	ssize_t count = 0;
-	while (count < nbytes) {
+	while (count < nbytes && !got_eol) {
 		ssize_t rc = real_read(g_stdindata,buf+count,1);
 		if (rc == 0) {
 			if (!g_follow) {
@@ -91,10 +97,16 @@ ssize_t read(int fd, void *buf, size_t nbytes)
 				continue;
 			}
 		}
-		if (((char*)buf)[count++] == '\n') {
-			fputc('\n',g_stdoutdata);
-			break;
+		if (cbuf[count] == '\177') { /* backspace */
+			if (g_stdoutstream != stdout)
+				fseek(g_stdoutstream, -1, SEEK_CUR);
 		}
+		if (cbuf[count] == '\n' || cbuf[count] == '\r') { /* line feed */
+			if (g_stdoutstream != stdout)
+				fputc('\n',g_stdoutstream);
+			got_eol = 1;
+		}
+		++count;
 	}
 	return count;
 }
@@ -105,18 +117,18 @@ int fputs(const char * str, FILE * stream)
 		return 0;
 	if (stream != stdout)
 		return real_fputs(str,stream);
-	if (g_stdoutdata != stdout)
-		real_fputs(str,g_stdoutdata);
+	if (g_stdoutstream != stdout)
+		real_fputs(str,g_stdoutstream);
 	return real_fputs(str,stream);
 }
 
-size_t fwrite(const void *ptr, size_t size, size_t count, FILE *stream)
+size_t fwrite(const void * ptr, size_t size, size_t count, FILE * stream)
 {
 	if (!real_fwrite)
 		return 0;
 	if (stream != stdout)
 		return real_fwrite(ptr,size,count,stream);
-	if (g_stdoutdata != stdout)
-		real_fwrite(ptr,size,count,g_stdoutdata);
+	if (g_stdoutstream != stdout)
+		real_fwrite(ptr,size,count,g_stdoutstream);
 	return real_fwrite(ptr,size,count,stream);
 }
