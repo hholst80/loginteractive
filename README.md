@@ -24,9 +24,6 @@ known bugs
 I have not tested it with anything else than [GNU Octave] and [Python].
 Please send bug reports to [Henrik Holst].
 
-Line feeds are not propagated as they should when `STDIN=/dev/stdin`, but they
-work for `STDIN=stdin.txt`.
-
 The libc `select` subroutine seems to work for Python but will probably break
 somewhere down the line when this is more tested.
 
