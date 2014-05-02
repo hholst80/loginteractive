@@ -29,6 +29,7 @@ static ssize_t (*real_fputs)(const void *str, FILE *stream) = NULL;
 static int g_stdindata = 0;
 static FILE * g_stdoutstream = 0;
 static int g_follow = 0;
+static FILE * g_forceoutstream = 0;
 
 void __attribute__((constructor)) init(void)
 {
@@ -54,8 +55,9 @@ void __attribute__((constructor)) init(void)
 		g_stdoutstream = fopen("stdout.txt","wb");
 	if (!g_stdoutstream)
 		perror("fopen");
-	if (getenv("FOLLOW") && atoi(getenv("FOLLOW")) >= 0)
-		g_follow = atoi(getenv("FOLLOW"));
+	if (getenv("NOECHO") && atoi(getenv("NOECHO")) > 0) {
+		g_forceoutstream = fopen("/dev/null","wb");
+	}
 	//if (getenv("NOBUF") && atoi(getenv("NOBUF")) > 0)
 	//	setbuf(g_stdoutstream,NULL);
 }
@@ -117,6 +119,8 @@ int fputs(const char * str, FILE * stream)
 		return 0;
 	if (stream != stdout)
 		return real_fputs(str,stream);
+	if (g_forceoutstream)
+		stream = g_forceoutstream;
 	if (g_stdoutstream != stdout)
 		real_fputs(str,g_stdoutstream);
 	return real_fputs(str,stream);
@@ -128,6 +132,8 @@ size_t fwrite(const void * ptr, size_t size, size_t count, FILE * stream)
 		return 0;
 	if (stream != stdout)
 		return real_fwrite(ptr,size,count,stream);
+	if (g_forceoutstream)
+		stream = g_forceoutstream;
 	if (g_stdoutstream != stdout)
 		real_fwrite(ptr,size,count,g_stdoutstream);
 	return real_fwrite(ptr,size,count,stream);
