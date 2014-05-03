@@ -21,10 +21,10 @@
 #include <unistd.h>
 #include <sys/uio.h>
 
-static ssize_t (*real_read)(int,void*,size_t) = NULL;
-static int (*real_select)(int nfds, fd_set *restrict readfds, fd_set *restrict writefds, fd_set *restrict errorfds, struct timeval *restrict timeout) = NULL;
-static ssize_t (*real_fwrite)(const void *ptr, size_t size, size_t count, FILE *stream) = NULL;
-static ssize_t (*real_fputs)(const void *str, FILE *stream) = NULL;
+static ssize_t (* real_read)(int,void *,size_t) = NULL;
+static int (* real_select)(int nfds, fd_set * restrict readfds, fd_set * restrict writefds, fd_set * restrict errorfds, struct timeval * restrict timeout) = NULL;
+static ssize_t (* real_fwrite)(const void * ptr, size_t size, size_t count, FILE * stream) = NULL;
+static ssize_t (* real_fputs)(const void * str, FILE * stream) = NULL;
 
 static int g_stdindata = 0;
 static FILE * g_stdoutstream = 0;
@@ -68,7 +68,7 @@ void __attribute__((destructor)) shutdown(void)
 
 /* TODO: I have not bothered to check how this should be done really. But this seems to work with Python. */
 
-int select(int nfds, fd_set *restrict readfds, fd_set *restrict writefds, fd_set *restrict errorfds, struct timeval *restrict timeout)
+int select(int nfds, fd_set * restrict readfds, fd_set * restrict writefds, fd_set * restrict errorfds, struct timeval * restrict timeout)
 {
 	if (!real_select)
 		return 0;
@@ -78,21 +78,26 @@ int select(int nfds, fd_set *restrict readfds, fd_set *restrict writefds, fd_set
 	return 1;
 }
 
-ssize_t read(int fd, void *buf, size_t nbytes)
+ssize_t read(int fd, void * buf, size_t nbytes)
 {
 	char * cbuf = buf;
 	ssize_t count = 0;
 	int got_eol = 0;
+	int rc;
+	static int got_eof = 0;
+
 	if (!real_read)
 		return 0;
-	if (g_stdindata < 0 || fd != 0)
+	if (fd != 0)
 		return real_read(fd,buf,nbytes);
+	if (got_eof)
+		return 0;
 	while (count < nbytes && !got_eol) {
-		ssize_t rc = real_read(g_stdindata,buf+count,1);
+		rc = real_read(g_stdindata,buf+count,1);
 		if (rc == 0) {
+			fputc('\n',g_stdoutstream);
 			if (!g_follow) {
-				close(g_stdindata);
-				g_stdindata = -1;
+				got_eof = 1;
 				break;
 			} else {
 				sleep(1);
