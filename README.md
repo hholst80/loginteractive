@@ -1,18 +1,18 @@
-libisatty
-=========
+loginteractive
+==============
 
-`libisatty` is a small C hack using `LD_PRELOAD` to be able to log
+`loginteractive` is a small C hacks using `LD_PRELOAD` to be able to log
 interactive programs as if they where executed from a terminal.
 
 usage
 =====
 
-You can use `libisatty` as follows:
+You can use `loginteractive` as follows:
 
 	$ cat stdin.txt
 	A=rand(2,2)
 	v=eig(A)
-	$ octave -qi < stdin.txt | tee stdout.txt
+	$ env LD_PRELOAD=./loginteractive.so STDOUT=stdout.txt octave -qi < stdin.txt
 	>> A=rand(2,2)
 	$ A =
 	
@@ -24,10 +24,9 @@ You can use `libisatty` as follows:
 	
 	  1.19560
 	  0.16994
-	
-	>> <CTRL-D>
-	$ cat stdout.txt >> A=rand(2,2)
-	$ A =
+	$ cat stdout.txt 
+	>> A=rand(2,2)
+	A =
 	
 	  0.86448  0.74905
 	  0.30702  0.50105
@@ -38,7 +37,7 @@ You can use `libisatty` as follows:
 	  1.19560
 	  0.16994
 	
-	>> 
+	$
 
 known bugs
 ==========

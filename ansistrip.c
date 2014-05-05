@@ -18,7 +18,7 @@ int main()
 		CSI    = 2,
 	} mode = NORMAL;
 
-	const char * allowed_control_codes = "\r\n\t";
+	const char * allowed_control_codes = "\r\n\t\b";
 
 	while (!feof(stdin))
 	{

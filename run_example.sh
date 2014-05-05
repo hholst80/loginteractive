@@ -1,4 +1,3 @@
 #!/bin/sh
-HACK="env LD_PRELOAD=./libisatty.so"
-$HACK octave -qi --traditional < stdin-octave.txt | ./ansistrip > stdout-octave.txt
-$HACK python < stdin-python.txt | ./ansistrip > stdout-python.txt
+env LD_PRELOAD=./loginteractive.so STDOUT=stdout-octave.txt octave -qi --traditional < stdin-octave.txt
+env LD_PRELOAD=./loginteractive.so STDOUT=stdout-python.txt python < stdin-python.txt
