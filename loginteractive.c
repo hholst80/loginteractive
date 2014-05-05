@@ -5,7 +5,7 @@
  */
 
 #include <string.h>
-
+#include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -24,6 +24,7 @@
 static ssize_t (* real_read)(int,void *,size_t) = NULL;
 static ssize_t (* real_fwrite)(const void * ptr, size_t size, size_t count, FILE * stream) = NULL;
 static ssize_t (* real_fputs)(const void * str, FILE * stream) = NULL;
+static ssize_t (* real_fprintf)(const FILE * stream, int flag, const char * format, ...) = NULL;
 
 static int g_stdindata = 0;
 static FILE * g_stdoutstream = 0;
@@ -40,6 +41,9 @@ void __attribute__((constructor)) init(void)
 		fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
 	real_fwrite = dlsym(RTLD_NEXT, "fwrite");
 	if (!real_fwrite)
+		fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
+	real_fprintf = dlsym(RTLD_NEXT, "__fprintf_chk");
+	if (!real_fprintf)
 		fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
 	if (getenv("STDIN"))
 		g_stdindata = open(getenv("STDIN"),O_RDONLY);
@@ -133,4 +137,26 @@ size_t fwrite(const void * ptr, size_t size, size_t count, FILE * stream)
 	if (g_stdoutstream != stdout)
 		real_fwrite(ptr,size,count,g_stdoutstream);
 	return real_fwrite(ptr,size,count,stream);
+}
+
+int __fprintf_chk(FILE * stream, int flag, const char * format, ...)
+{
+	int rc;
+	va_list args;
+	va_start(args,format);
+	if (!real_fprintf)
+		return 0;
+	if (stream != stdout) {
+		rc = vfprintf(stream,format,args);
+		va_end(args);
+		return rc;
+	}
+	if (g_forceoutstream)
+		stream = g_forceoutstream;
+	if (g_stdoutstream != stdout) {
+		vfprintf(g_stdoutstream,format,args);
+	}
+	rc = vfprintf(stream,format,args);
+	va_end(args);
+	return rc;
 }

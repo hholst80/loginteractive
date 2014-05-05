@@ -3,3 +3,5 @@ print 'x:', x
 from math import sin
 y=sin(x)
 print 'sin(x):', y
+for n in [1,2,3,4]:
+    print n,

@@ -8,7 +8,7 @@ clean:
 	rm -f $(ALL)
 
 %.so: %.c
-	gcc -o $@ -shared -std=c99 $^
+	gcc -o $@ -shared -std=c99 $^ -ldl
 
 ansistrip: ansistrip.c
 	gcc -o $@ $^
