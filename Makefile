@@ -1,9 +1,14 @@
 .PHONY: all clean
 
-all: loginteractive.so
+ALL = libisatty.so ansistrip
+
+all: $(ALL)
 
 clean:
-	rm -f loginteractive.so
+	rm -f $(ALL)
 
-loginteractive.so: loginteractive.c
-	gcc -o $@ -shared $^ -std=c99 -ldl
+libisatty.so: libisatty.c
+	gcc -o $@ -shared $^
+
+ansistrip: ansistrip.c
+	gcc -o $@ $^
