@@ -14,7 +14,7 @@ You can use `loginteractive` as follows:
 	v=eig(A)
 	$ env LD_PRELOAD=./loginteractive.so STDOUT=stdout.txt octave -qi < stdin.txt
 	>> A=rand(2,2)
-	$ A =
+	A =
 	
 	  0.86448  0.74905
 	  0.30702  0.50105
