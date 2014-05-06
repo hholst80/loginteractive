@@ -4,6 +4,8 @@
  * @license LICENSE
  */
 
+#define _POSIX_SOURCE
+
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -22,6 +24,7 @@
 #include <sys/uio.h>
 
 static ssize_t (* real_read)(int,void *,size_t) = NULL;
+static ssize_t (* real_write)(int,const void *,size_t) = NULL;
 static ssize_t (* real_fwrite)(const void * ptr, size_t size, size_t count, FILE * stream) = NULL;
 static ssize_t (* real_fputs)(const void * str, FILE * stream) = NULL;
 static ssize_t (* real_fprintf)(const FILE * stream, int flag, const char * format, ...) = NULL;
@@ -41,6 +44,9 @@ void __attribute__((constructor)) init(void)
 		fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
 	real_fwrite = dlsym(RTLD_NEXT, "fwrite");
 	if (!real_fwrite)
+		fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
+	real_write = dlsym(RTLD_NEXT, "write");
+	if (!real_write)
 		fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
 	real_fprintf = dlsym(RTLD_NEXT, "__fprintf_chk");
 	if (!real_fprintf)
@@ -87,6 +93,8 @@ ssize_t read(int fd, void * buf, size_t nbytes)
 		return real_read(fd,buf,nbytes);
 	if (got_eof)
 		return 0;
+	if (nbytes > 1)
+		nbytes = 1;
 	while (count < nbytes && !got_eol) {
 		rc = real_read(g_stdindata,buf+count,1);
 		if (rc == 0) {
@@ -126,6 +134,18 @@ int fputs(const char * str, FILE * stream)
 	return real_fputs(str,stream);
 }
 
+ssize_t write(int fd, const void *buffer, size_t nbytes)
+{
+	FILE * stream = stdout;
+	ssize_t count = 0;
+	if (!real_write)
+		return 0;
+	if (fd != 1)
+		return real_write(fd,buffer,nbytes);
+	/* loop over to a fwrite call */
+	return fwrite(buffer,1,nbytes,stream);
+}
+
 size_t fwrite(const void * ptr, size_t size, size_t count, FILE * stream)
 {
 	if (!real_fwrite)
@@ -153,9 +173,8 @@ int __fprintf_chk(FILE * stream, int flag, const char * format, ...)
 	}
 	if (g_forceoutstream)
 		stream = g_forceoutstream;
-	if (g_stdoutstream != stdout) {
+	if (g_stdoutstream != stdout)
 		vfprintf(g_stdoutstream,format,args);
-	}
 	rc = vfprintf(stream,format,args);
 	va_end(args);
 	return rc;
