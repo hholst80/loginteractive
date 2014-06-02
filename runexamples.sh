@@ -15,4 +15,4 @@ env LD_PRELOAD=./loginteractive.so STDOUT=stdout-python.txt python < stdin-pytho
 echo
 echo " *** Ruby *** "
 echo
-irb --simple-prompt < stdin-ruby.txt | tee stdout-ruby.txt
+irb --simple-prompt --inspect < stdin-ruby.txt | tee stdout-ruby.txt
